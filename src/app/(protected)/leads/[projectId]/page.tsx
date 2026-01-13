@@ -76,8 +76,91 @@ export default function ProjectLeadsPage({ params }: { params: Promise<{ project
         window.location.reload();
     };
 
+
+
     const handleImport = () => {
-        alert('Import CSV functionality coming soon!');
+        document.getElementById('csv-upload')?.click();
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const Papa = (await import('papaparse')).default;
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                try {
+                    const rawData = results.data;
+                    if (rawData.length === 0) {
+                        toast.error('CSV file is empty');
+                        return;
+                    }
+
+                    // Map columns
+                    const mappedLeads = rawData.map((row: any) => {
+                        const newRow: any = {};
+
+                        // Helper to find value case-insensitively
+                        const findVal = (keys: string[]) => {
+                            for (const key of keys) {
+                                const foundKey = Object.keys(row).find(k => k.toLowerCase().trim() === key.toLowerCase().trim());
+                                if (foundKey) return row[foundKey];
+                            }
+                            return undefined;
+                        };
+
+                        newRow.name = findVal(['name', 'prospect name', 'full name']) || 'Unknown';
+                        newRow.company = findVal(['company', 'company name']);
+                        newRow.email = findVal(['email', 'email address']);
+                        newRow.phone = findVal(['phone', 'direct number', 'phone number']);
+                        newRow.mobile = findVal(['mobile', 'mobile number']);
+                        newRow.title = findVal(['title', 'job title']);
+                        newRow.industry = findVal(['industry']);
+                        newRow.revenue = findVal(['revenue', 'revenue size', 'annual revenue']);
+                        newRow.employees = findVal(['employees', 'employee size', 'company size']);
+                        newRow.state = findVal(['state', 'location']);
+                        newRow.linkedin = findVal(['linkedin', 'linkedin url']);
+                        newRow.website = findVal(['website', 'company website']);
+                        newRow.notes = findVal(['notes', 'call notes', 'description']);
+                        newRow.status = findVal(['status']) || 'Not Interested';
+
+                        return newRow;
+                    });
+
+                    // Send to API
+                    const toastId = toast.loading(`Importing ${mappedLeads.length} leads...`);
+
+                    const res = await fetch('/api/leads/import', {
+                        method: 'POST',
+                        body: JSON.stringify({ leads: mappedLeads, projectId }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!res.ok) throw new Error('Import failed');
+
+                    const data = await res.json();
+                    toast.dismiss(toastId);
+                    toast.success(`Successfully imported ${data.count} leads`);
+
+                    // Reset input
+                    event.target.value = '';
+
+                    // Refresh
+                    window.location.reload();
+
+                } catch (error) {
+                    toast.error('Failed to import leads');
+                    console.error(error);
+                }
+            },
+            error: (error) => {
+                toast.error('Error parsing CSV');
+                console.error(error);
+            }
+        });
     };
 
     const handleAddLead = async () => {
@@ -207,6 +290,14 @@ export default function ProjectLeadsPage({ params }: { params: Promise<{ project
                             Add Lead
                         </button>
                     </div>
+                    <input
+                        id="csv-upload"
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        title="Upload CSV"
+                    />
                 </div>
             </div>
 
