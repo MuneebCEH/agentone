@@ -33,7 +33,7 @@ export default function Sidebar({ user }: { user: User }) {
     return (
         <div className="h-screen w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
             <div className="p-6">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Golexcel</h1>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Outflux</h1>
                 <p className="text-xs text-slate-500 mt-1">{user?.role?.replace('_', ' ')} Workspace</p>
             </div>
 

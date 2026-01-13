@@ -14,8 +14,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         console.log('[LEAD_PATCH] ID from params:', id, 'Type:', typeof id);
         console.log('[LEAD_PATCH] Body:', body);
 
-        // Fetch existing
-        const existingLead = await prismadb.lead.findUnique({ where: { id } });
+        // Fetch existing with project relations
+        const existingLead = await prismadb.lead.findUnique({
+            where: { id },
+            include: {
+                project: {
+                    include: {
+                        assignedUsers: {
+                            select: { id: true }
+                        }
+                    }
+                }
+            }
+        });
+
         if (!existingLead) {
             console.error('[LEAD_PATCH] Lead not found:', id);
             return NextResponse.json({ error: "Not Found" }, { status: 404 });
@@ -23,43 +35,70 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         // Permission Check
         if (session.role === 'AGENT') {
-            if (existingLead.assignedAgentId !== session.id) {
+            const isAssignedToLead = existingLead.assignedAgentId === session.id;
+            const isAssignedToProject = existingLead.project?.assignedUsers.some(u => u.id === session.id);
+
+            if (!isAssignedToLead && !isAssignedToProject) {
+                console.warn('[LEAD_PATCH] Forbidden: Agent not assigned to lead or project', {
+                    agentId: session.id,
+                    leadAssignedTo: existingLead.assignedAgentId,
+                    projectAssignedUsers: existingLead.project?.assignedUsers.map(u => u.id)
+                });
                 return NextResponse.json({ error: "Forbidden" }, { status: 403 });
             }
+
             // Check if locked
             if (existingLead.status === 'Sales Complete' || existingLead.status === 'Not Qualified') {
                 return NextResponse.json({ error: "Record is locked" }, { status: 403 });
             }
         }
 
+        // AGENT RESTRICTIONS: Only allow specific fields
+        if (session.role === 'AGENT') {
+            const allowedFields = ['status', 'notes', 'nextFollowUp'];
+            const attemptedFields = Object.keys(body);
+            const unauthorizedFields = attemptedFields.filter(field => !allowedFields.includes(field));
+
+            if (unauthorizedFields.length > 0) {
+                console.log('[LEAD_PATCH] Agent attempted to update unauthorized fields:', unauthorizedFields);
+                // We can either throw an error or just ignore them. 
+                // To be safe and avoid breaking the UI if it sends extra data, let's strictly filter the updateData below.
+            }
+        }
+
         // Build update object with explicit typing
         const updateData: Prisma.LeadUpdateInput = {};
 
-        if (body.name !== undefined) updateData.name = body.name;
-        if (body.company !== undefined) updateData.company = body.company;
-        if (body.email !== undefined) updateData.email = body.email;
-        if (body.phone !== undefined) updateData.phone = body.phone;
-        if (body.status !== undefined) updateData.status = body.status;
-        if (body.dealValue !== undefined) updateData.dealValue = Number(body.dealValue);
-        if (body.notes !== undefined) updateData.notes = body.notes;
-        if (body.nextFollowUp !== undefined) updateData.nextFollowUp = body.nextFollowUp;
-        if (body.source !== undefined) updateData.source = body.source;
-        if (body.assignedAgentId !== undefined) {
-            updateData.assignedAgent = body.assignedAgentId
-                ? { connect: { id: body.assignedAgentId } }
-                : { disconnect: true };
-        }
+        // For Agents, we only populate specifically allowed fields. For Admins, everything.
+        const isAgent = session.role === 'AGENT';
 
-        // New Fields
-        if (body.title !== undefined) updateData.title = body.title;
-        if (body.industry !== undefined) updateData.industry = body.industry;
-        if (body.revenue !== undefined) updateData.revenue = body.revenue;
-        if (body.employees !== undefined) updateData.employees = body.employees;
-        if (body.mobile !== undefined) updateData.mobile = body.mobile;
-        if (body.corporatePhone !== undefined) updateData.corporatePhone = body.corporatePhone;
-        if (body.state !== undefined) updateData.state = body.state;
-        if (body.linkedin !== undefined) updateData.linkedin = body.linkedin;
-        if (body.website !== undefined) updateData.website = body.website;
+        if ((!isAgent || isAgent) && body.status !== undefined) updateData.status = body.status;
+        if ((!isAgent || isAgent) && body.notes !== undefined) updateData.notes = body.notes;
+        if ((!isAgent || isAgent) && body.nextFollowUp !== undefined) updateData.nextFollowUp = body.nextFollowUp;
+
+        // Admin-only fields
+        if (!isAgent) {
+            if (body.name !== undefined) updateData.name = body.name;
+            if (body.company !== undefined) updateData.company = body.company;
+            if (body.email !== undefined) updateData.email = body.email;
+            if (body.phone !== undefined) updateData.phone = body.phone;
+            if (body.dealValue !== undefined) updateData.dealValue = Number(body.dealValue);
+            if (body.source !== undefined) updateData.source = body.source;
+            if (body.assignedAgentId !== undefined) {
+                updateData.assignedAgent = body.assignedAgentId
+                    ? { connect: { id: body.assignedAgentId } }
+                    : { disconnect: true };
+            }
+            if (body.title !== undefined) updateData.title = body.title;
+            if (body.industry !== undefined) updateData.industry = body.industry;
+            if (body.revenue !== undefined) updateData.revenue = body.revenue;
+            if (body.employees !== undefined) updateData.employees = body.employees;
+            if (body.mobile !== undefined) updateData.mobile = body.mobile;
+            if (body.corporatePhone !== undefined) updateData.corporatePhone = body.corporatePhone;
+            if (body.state !== undefined) updateData.state = body.state;
+            if (body.linkedin !== undefined) updateData.linkedin = body.linkedin;
+            if (body.website !== undefined) updateData.website = body.website;
+        }
 
         console.log('[LEAD_PATCH] Update data:', updateData);
 

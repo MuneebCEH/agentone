@@ -209,7 +209,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'name',
                 headerName: 'Prospect Name',
                 width: 180,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
                 cellStyle: { backgroundColor: '#f1f5f9' }
             },
@@ -217,7 +217,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'company',
                 headerName: 'Company Name',
                 width: 180,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
                 cellStyle: { backgroundColor: '#f1f5f9' }
             },
@@ -225,63 +225,63 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'title',
                 headerName: 'Title',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'industry',
                 headerName: 'Industry',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'revenue',
                 headerName: 'Revenue Size',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'employees',
                 headerName: 'Employee Size',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'mobile',
                 headerName: 'Mobile Number',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'phone',
                 headerName: 'Direct Number',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'corporatePhone',
                 headerName: 'Corporate Number',
                 width: 150,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'email',
                 headerName: 'Email Address',
                 width: 200,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
                 field: 'state',
                 headerName: 'State',
                 width: 120,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter'
             },
             {
@@ -331,7 +331,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'linkedin',
                 headerName: 'LinkedIn',
                 width: 180,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
                 cellRenderer: (params: any) => {
                     if (params.value && params.value.startsWith('http')) {
@@ -344,7 +344,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'website',
                 headerName: 'Website',
                 width: 180,
-                editable: true,
+                editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
                 cellRenderer: (params: any) => {
                     if (params.value && params.value.startsWith('http')) {
@@ -409,6 +409,8 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 suppressExcelExport={true}
                 suppressCsvExport={true}
                 animateRows={true}
+                enableCellTextSelection={true}
+                ensureDomOrder={true}
             />
         </div>
     );
