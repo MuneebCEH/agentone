@@ -43,7 +43,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         const { id } = await params;
         const body = await req.json();
-        const { name, description, assignedAgentId } = body;
+        const { name, description, assignedAgentId, assignedAgentIds } = body;
 
         const existingProject = await prismadb.project.findUnique({
             where: { id }
@@ -59,7 +59,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (name) updateData.name = name;
         if (description) updateData.description = description;
 
-        if (assignedAgentId !== undefined) {
+        if (assignedAgentIds !== undefined && Array.isArray(assignedAgentIds)) {
+            updateData.assignedUsers = {
+                set: assignedAgentIds.map((id: string) => ({ id }))
+            };
+        } else if (assignedAgentId !== undefined) {
+            // Legacy support or single select fallback
             updateData.assignedUsers = {
                 set: assignedAgentId ? [{ id: assignedAgentId }] : []
             };

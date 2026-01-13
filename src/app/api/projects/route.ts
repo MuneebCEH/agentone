@@ -87,9 +87,19 @@ export async function POST(req: Request) {
         };
 
         if (assignedAgentId) {
-            projectData.assignedUsers = {
-                connect: { id: assignedAgentId }
-            };
+            if (Array.isArray(assignedAgentId)) {
+                // If array of IDs
+                if (assignedAgentId.length > 0) {
+                    projectData.assignedUsers = {
+                        connect: assignedAgentId.map((id: string) => ({ id }))
+                    };
+                }
+            } else {
+                // If single string ID
+                projectData.assignedUsers = {
+                    connect: { id: assignedAgentId }
+                };
+            }
         }
 
         const project = await prismadb.project.create({

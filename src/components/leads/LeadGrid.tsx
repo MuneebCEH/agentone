@@ -393,7 +393,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
     );
 
     return (
-        <div className="ag-theme-quartz-dark h-full">
+        <div className="ag-theme-quartz-dark h-full select-none">
             <AgGridReact
                 rowData={leads}
                 columnDefs={colDefs}
@@ -409,7 +409,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 suppressExcelExport={true}
                 suppressCsvExport={true}
                 animateRows={true}
-                enableCellTextSelection={true}
+                enableCellTextSelection={false}
                 ensureDomOrder={true}
             />
         </div>

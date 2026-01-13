@@ -116,42 +116,34 @@ export default function LeadsPage() {
         }
     };
 
-    const handleAssignAgent = async (e: React.ChangeEvent<HTMLSelectElement>, projectId: string) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const agentId = e.target.value;
-
+    const handleUpdateProjectAgents = async (projectId: string, newAgentIds: string[]) => {
         try {
             const res = await fetch(`/api/projects/${projectId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assignedAgentId: agentId })
+                body: JSON.stringify({ assignedAgentIds: newAgentIds })
             });
 
             if (res.ok) {
-                const updatedProject = await res.json();
                 // Update local state
-                // Note: The PATCH response might not include the full nested assignedUsers if not careful.
-                // It's better to refetch or manually update the name if we have it in the agents list.
-                const agentName = agents.find(a => a.id === agentId)?.name || '';
+                const selectedAgents = agents.filter(a => newAgentIds.includes(a.id));
 
                 setProjects(projects.map(p => {
                     if (p.id === projectId) {
                         return {
                             ...p,
-                            assignedUsers: agentId ? [{ id: agentId, name: agentName }] : []
+                            assignedUsers: selectedAgents.map(a => ({ id: a.id, name: a.name }))
                         };
                     }
                     return p;
                 }));
 
-                toast.success('Agent assigned successfully');
+                toast.success('Agents updated');
             } else {
-                toast.error('Failed to assign agent');
+                toast.error('Failed to update agents');
             }
         } catch (error) {
-            toast.error('Error assigning agent');
+            toast.error('Error updating agents');
         }
     };
 
@@ -230,18 +222,31 @@ export default function LeadsPage() {
                                         >
                                             {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
                                                 <>
-                                                    <select
-                                                        value={project.assignedUsers?.[0]?.id || ''}
-                                                        onChange={(e) => handleAssignAgent(e, project.id)}
-                                                        className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
-                                                    >
-                                                        <option value="">No Agent</option>
-                                                        {agents.map((agent) => (
-                                                            <option key={agent.id} value={agent.id}>
-                                                                {agent.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-y-auto h-24 scrollbar-thin scrollbar-thumb-slate-600">
+                                                        {agents.map((agent) => {
+                                                            const isAssigned = project.assignedUsers?.some((u: any) => u.id === agent.id);
+                                                            return (
+                                                                <div
+                                                                    key={agent.id}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const currentIds = project.assignedUsers?.map((u: any) => u.id) || [];
+                                                                        let newIds;
+                                                                        if (isAssigned) {
+                                                                            newIds = currentIds.filter((id: string) => id !== agent.id);
+                                                                        } else {
+                                                                            newIds = [...currentIds, agent.id];
+                                                                        }
+                                                                        handleUpdateProjectAgents(project.id, newIds);
+                                                                    }}
+                                                                    className={`px-3 py-1.5 text-xs cursor-pointer border-b border-slate-800 last:border-0 hover:bg-slate-800 transition-colors flex items-center justify-between ${isAssigned ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400'}`}
+                                                                >
+                                                                    <span>{agent.name}</span>
+                                                                    {isAssigned && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                     <button
                                                         onClick={(e) => handleDeleteProject(e, project.id)}
                                                         className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
@@ -265,7 +270,11 @@ export default function LeadsPage() {
                                     {project.assignedUsers && project.assignedUsers.length > 0 && (
                                         <div className="mb-4 flex items-center gap-2 text-sm text-slate-400 bg-slate-900/50 p-2 rounded-lg">
                                             <UserCircle className="w-4 h-4 text-blue-400" />
-                                            <span>Assigned to: <span className="text-white font-medium">{project.assignedUsers[0].name}</span></span>
+                                            <span>Assigned to: <span className="text-white font-medium">
+                                                {project.assignedUsers.length === 1
+                                                    ? project.assignedUsers[0].name
+                                                    : `${project.assignedUsers.length} Agents`}
+                                            </span></span>
                                         </div>
                                     )}
 
@@ -320,11 +329,14 @@ export default function LeadsPage() {
                             <div>
                                 <label className="block text-sm font-semibold text-slate-300 mb-2 ml-1">Assign to Agent (Optional)</label>
                                 <select
-                                    value={newProject.assignedAgentId}
-                                    onChange={(e) => setNewProject({ ...newProject, assignedAgentId: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    multiple
+                                    value={Array.isArray(newProject.assignedAgentId) ? newProject.assignedAgentId : (newProject.assignedAgentId ? [newProject.assignedAgentId] : [])}
+                                    onChange={(e) => {
+                                        const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                        setNewProject({ ...newProject, assignedAgentId: selected as any });
+                                    }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-24 scrollbar-thin scrollbar-thumb-slate-700"
                                 >
-                                    <option value="">Select an Agent...</option>
                                     {agents.map((agent) => (
                                         <option key={agent.id} value={agent.id}>
                                             {agent.name}
