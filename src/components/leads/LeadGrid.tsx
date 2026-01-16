@@ -160,7 +160,12 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
         'Meeting Rescheduled',
         'Proposal Sent',
         'Client Follow-Up',
-        'Sales Complete'
+        'Sales Complete',
+        'VM1',
+        'VM2',
+        'VM3',
+        'VM4',
+        'VM5'
     ];
 
     // Column Definitions - Traditional Excel Style
@@ -194,7 +199,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 field: 'assignedAgentId',
                 headerName: 'Agent',
                 width: 150,
-                editable: user.role !== 'AGENT',
+                editable: true,
                 cellEditor: 'agSelectCellEditor',
                 cellEditorParams: {
                     values: agents.map(a => a.id),
@@ -371,7 +376,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             }
 
             if (params.colDef.field === 'status') {
-                const allowedStatuses = ['Not Interested', 'Follow-Up', 'In QC', 'Meeting Rescheduled', 'Scheduled', 'Meeting Complete', 'Client Follow-Up'];
+                const allowedStatuses = ['Not Interested', 'Follow-Up', 'In QC', 'Meeting Rescheduled', 'Scheduled', 'Meeting Complete', 'Client Follow-Up', 'VM1', 'VM2', 'VM3', 'VM4', 'VM5'];
                 if (!allowedStatuses.includes(params.newValue)) {
                     toast.error(`You cannot set status to ${params.newValue}. Only Admins can.`);
                     params.api.undoCellEditing();
@@ -393,7 +398,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
     );
 
     return (
-        <div className="ag-theme-quartz-dark h-full select-none">
+        <div className="ag-theme-quartz-dark h-full">
             <AgGridReact
                 rowData={leads}
                 columnDefs={colDefs}
@@ -405,11 +410,18 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                     resizable: true,
                     floatingFilter: false
                 }}
+                rowSelection={undefined}
+                cellSelection={false}
+                suppressRowClickSelection={true}
+                suppressCellFocus={false}
                 suppressCopyRowsToClipboard={true}
+                suppressCopySingleCellRanges={true}
+                suppressMultiRangeSelection={true}
                 suppressExcelExport={true}
                 suppressCsvExport={true}
                 animateRows={true}
                 enableCellTextSelection={false}
+                enableRangeSelection={false}
                 ensureDomOrder={true}
             />
         </div>

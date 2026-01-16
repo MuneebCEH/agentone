@@ -28,3 +28,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* AG Grid - Disable ALL text selection and copying */
+.ag-theme-quartz-dark .ag-cell {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  cursor: default !important;
+}
+
+.ag-theme-quartz-dark .ag-row {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* AG Grid - Disable bulk/range selection */
+.ag-theme-quartz-dark .ag-cell-range-selected,
+.ag-theme-quartz-dark .ag-cell-range-selected-1,
+.ag-theme-quartz-dark .ag-cell-range-selected-2,
+.ag-theme-quartz-dark .ag-cell-range-selected-3,
+.ag-theme-quartz-dark .ag-cell-range-selected-4 {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* AG Grid - Disable row selection highlighting */
+.ag-theme-quartz-dark .ag-row-selected,
+.ag-theme-quartz-dark .ag-row-selected::before {
+  background-color: transparent !important;
+}
+
+/* AG Grid - Hide range selection handle */
+.ag-theme-quartz-dark .ag-fill-handle,
+.ag-theme-quartz-dark .ag-range-handle {
+  display: none !important;
+}

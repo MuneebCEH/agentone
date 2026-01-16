@@ -55,7 +55,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         // AGENT RESTRICTIONS: Only allow specific fields
         if (session.role === 'AGENT') {
-            const allowedFields = ['status', 'notes', 'nextFollowUp'];
+            const allowedFields = ['status', 'notes', 'nextFollowUp', 'assignedAgentId'];
             const attemptedFields = Object.keys(body);
             const unauthorizedFields = attemptedFields.filter(field => !allowedFields.includes(field));
 
@@ -76,6 +76,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if ((!isAgent || isAgent) && body.notes !== undefined) updateData.notes = body.notes;
         if ((!isAgent || isAgent) && body.nextFollowUp !== undefined) updateData.nextFollowUp = body.nextFollowUp;
 
+        // Allow all roles to update assigned agent
+        if (body.assignedAgentId !== undefined) {
+            updateData.assignedAgent = body.assignedAgentId
+                ? { connect: { id: body.assignedAgentId } }
+                : { disconnect: true };
+        }
+
         // Admin-only fields
         if (!isAgent) {
             if (body.name !== undefined) updateData.name = body.name;
@@ -84,11 +91,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             if (body.phone !== undefined) updateData.phone = body.phone;
             if (body.dealValue !== undefined) updateData.dealValue = Number(body.dealValue);
             if (body.source !== undefined) updateData.source = body.source;
-            if (body.assignedAgentId !== undefined) {
-                updateData.assignedAgent = body.assignedAgentId
-                    ? { connect: { id: body.assignedAgentId } }
-                    : { disconnect: true };
-            }
             if (body.title !== undefined) updateData.title = body.title;
             if (body.industry !== undefined) updateData.industry = body.industry;
             if (body.revenue !== undefined) updateData.revenue = body.revenue;
