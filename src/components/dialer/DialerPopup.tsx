@@ -21,6 +21,7 @@ export default function DialerPopup({ isOpen, onClose, initialNumber = '' }: Dia
         if (isOpen) {
             setDisplayNumber(initialNumber)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, initialNumber])
 
     if (!isOpen) return null;

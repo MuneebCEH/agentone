@@ -43,7 +43,7 @@ ModuleRegistry.registerModules([
     QuickFilterModule
 ]);
 
-export default function LeadGrid({ user, filters, projectId }: { user: User; filters?: { search?: string; status?: string;[key: string]: any }; projectId?: string }) {
+export default function LeadGrid({ user, filters, projectId }: { user: User; filters?: { search?: string; status?: string;[key: string]: unknown }; projectId?: string }) {
     const queryClient = useQueryClient();
     const [gridApi, setGridApi] = useState<GridApi | null>(null);
 
@@ -149,7 +149,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             const res = await fetch('/api/users');
             if (!res.ok) return [];
             const data = await res.json();
-            return data.filter((u: any) => u.role === 'AGENT');
+            return data.filter((u: User) => u.role === 'AGENT');
         }
     });
 
@@ -157,11 +157,11 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
     const [dialerOpen, setDialerOpen] = useState(false);
     const [currentDialNumber, setCurrentDialNumber] = useState('');
 
-    const handlePhoneClick = (phone: string) => {
+    const handlePhoneClick = useCallback((phone: string) => {
         if (!phone) return;
         setCurrentDialNumber(phone);
         setDialerOpen(true);
-    };
+    }, []);
 
     const PhoneCellRenderer = (params: ICellRendererParams) => {
         if (!params.value) return null;
@@ -392,6 +392,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             }
         ];
         setColDefs(defs);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [agents, user.role]);
 
     const onCellValueChanged = useCallback((params: CellValueChangedEvent) => {
