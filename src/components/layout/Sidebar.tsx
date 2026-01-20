@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Users, Database, Settings, LogOut, BarChart3, Filter, FileText } from 'lucide-react'
+import { LayoutDashboard, Users, Database, Settings, LogOut, BarChart3, Filter, FileText, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -23,6 +23,7 @@ export default function Sidebar({ user }: { user: User }) {
         { name: 'All Leads', href: '/leads', icon: Database, roles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'My Leads', href: '/leads?view=mine', icon: Filter, roles: ['AGENT'] },
         { name: 'Proposals', href: '/proposals', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] }, // Was Social
+        { name: 'Dialer', href: '/dialer', icon: Phone, roles: ['SUPER_ADMIN', 'ADMIN', 'AGENT'] },
         { name: 'Users', href: '/users', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN'] },
         { name: 'Settings', href: '/settings', icon: Settings, roles: ['SUPER_ADMIN'] },
@@ -40,8 +41,6 @@ export default function Sidebar({ user }: { user: User }) {
             <nav className="flex-1 px-4 space-y-1">
                 {filteredNav.map((item) => {
                     const isActive = pathname === item.href || (pathname.startsWith('/leads') && item.href.startsWith('/leads') && pathname === item.href.split('?')[0] && (item.href.includes('?view=mine') ? pathname.includes('view') : !pathname.includes('view')))
-                    // Simple active check logic
-                    const active = pathname === item.href.split('?')[0] && (item.href.includes('?view=mine') ? true : true) // Simplification for MVP
 
                     return (
                         <Link

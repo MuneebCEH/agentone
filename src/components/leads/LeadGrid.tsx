@@ -15,12 +15,17 @@ import {
     NumberFilterModule,
     DateFilterModule,
     ExternalFilterModule,
-    QuickFilterModule
+    QuickFilterModule,
+    GridApi,
+    GridReadyEvent,
+    ICellRendererParams,
+    CellValueChangedEvent
 } from 'ag-grid-community';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Phone } from 'lucide-react';
 import { User, Lead } from '@/types';
+import DialerPopup from '@/components/dialer/DialerPopup';
 
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
@@ -38,9 +43,9 @@ ModuleRegistry.registerModules([
     QuickFilterModule
 ]);
 
-export default function LeadGrid({ user, filters, projectId }: { user: User; filters?: any; projectId?: string }) {
+export default function LeadGrid({ user, filters, projectId }: { user: User; filters?: { search?: string; status?: string;[key: string]: any }; projectId?: string }) {
     const queryClient = useQueryClient();
-    const [gridApi, setGridApi] = useState<any>(null);
+    const [gridApi, setGridApi] = useState<GridApi | null>(null);
 
     // Fetch Leads
     const { data: leads, isLoading } = useQuery<Lead[]>({
@@ -75,7 +80,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
         gridApi.onFilterChanged();
     }, [filters, gridApi]);
 
-    const onGridReady = (params: any) => {
+    const onGridReady = (params: GridReadyEvent) => {
         setGridApi(params.api);
     };
 
@@ -98,7 +103,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             toast.success('Lead updated');
             queryClient.invalidateQueries({ queryKey: ['leads'] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message || 'Failed to update lead');
             queryClient.invalidateQueries({ queryKey: ['leads'] });
         }
@@ -118,7 +123,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
         onError: () => toast.error('Failed to delete lead')
     });
 
-    const DeleteButtonRenderer = (props: any) => {
+    const DeleteButtonRenderer = (props: ICellRendererParams) => {
         const canDelete = user.role === 'SUPER_ADMIN' || (user.permissions && user.permissions.includes('delete_leads'));
         if (!canDelete) return null;
 
@@ -138,7 +143,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
     };
 
     // Fetch Agents for dropdown
-    const { data: agents } = useQuery<any[]>({
+    const { data: agents } = useQuery<User[]>({
         queryKey: ['agents'],
         queryFn: async () => {
             const res = await fetch('/api/users');
@@ -147,6 +152,30 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             return data.filter((u: any) => u.role === 'AGENT');
         }
     });
+
+    // State for Dialer Popup
+    const [dialerOpen, setDialerOpen] = useState(false);
+    const [currentDialNumber, setCurrentDialNumber] = useState('');
+
+    const handlePhoneClick = (phone: string) => {
+        if (!phone) return;
+        setCurrentDialNumber(phone);
+        setDialerOpen(true);
+    };
+
+    const PhoneCellRenderer = (params: ICellRendererParams) => {
+        if (!params.value) return null;
+        return (
+            <div
+                onClick={() => handlePhoneClick(params.value)}
+                className="cursor-pointer hover:text-blue-500 hover:underline flex items-center gap-2 group"
+                title="Click to dial"
+            >
+                <span>{params.value}</span>
+                <Phone className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" />
+            </div>
+        );
+    };
 
     // All possible statuses
     const statuses = [
@@ -257,23 +286,26 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
             {
                 field: 'mobile',
                 headerName: 'Mobile Number',
-                width: 150,
+                width: 160,
                 editable: user.role !== 'AGENT',
-                filter: 'agTextColumnFilter'
+                filter: 'agTextColumnFilter',
+                cellRenderer: PhoneCellRenderer
             },
             {
                 field: 'phone',
                 headerName: 'Direct Number',
-                width: 150,
+                width: 160,
                 editable: user.role !== 'AGENT',
-                filter: 'agTextColumnFilter'
+                filter: 'agTextColumnFilter',
+                cellRenderer: PhoneCellRenderer
             },
             {
                 field: 'corporatePhone',
                 headerName: 'Corporate Number',
-                width: 150,
+                width: 160,
                 editable: user.role !== 'AGENT',
-                filter: 'agTextColumnFilter'
+                filter: 'agTextColumnFilter',
+                cellRenderer: PhoneCellRenderer
             },
             {
                 field: 'email',
@@ -338,7 +370,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 width: 180,
                 editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
-                cellRenderer: (params: any) => {
+                cellRenderer: (params: ICellRendererParams) => {
                     if (params.value && params.value.startsWith('http')) {
                         return <a href={params.value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Link</a>;
                     }
@@ -351,7 +383,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 width: 180,
                 editable: user.role !== 'AGENT',
                 filter: 'agTextColumnFilter',
-                cellRenderer: (params: any) => {
+                cellRenderer: (params: ICellRendererParams) => {
                     if (params.value && params.value.startsWith('http')) {
                         return <a href={params.value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Link</a>;
                     }
@@ -362,7 +394,7 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
         setColDefs(defs);
     }, [agents, user.role]);
 
-    const onCellValueChanged = useCallback((params: any) => {
+    const onCellValueChanged = useCallback((params: CellValueChangedEvent) => {
         if (params.oldValue === params.newValue) return;
         if (!params.colDef.field) return;
 
@@ -423,6 +455,11 @@ export default function LeadGrid({ user, filters, projectId }: { user: User; fil
                 enableCellTextSelection={false}
                 enableRangeSelection={false}
                 ensureDomOrder={true}
+            />
+            <DialerPopup
+                isOpen={dialerOpen}
+                onClose={() => setDialerOpen(false)}
+                initialNumber={currentDialNumber}
             />
         </div>
     );
